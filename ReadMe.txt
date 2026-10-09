@@ -100,7 +100,6 @@ NOTE : For async PostgreSQL connections, psycopg 3 is used.
 # -------------------------------
 
 
-python -m uvicorn main:app --reload
 
 > Run your application in the Swagger 
 http://127.0.0.1:8000/docs 
