@@ -19,17 +19,20 @@
     # This is useful for enforcing constraints that involve multiple fields or require more complex validation logic. 
 
 '''
+
 from enum import Enum
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     EmailStr,
-    Field,
-    field_validator,
-    model_validator
+    Field
 )
 
+
+# =========================================================
+# EMPLOYEE STATUS
+# =========================================================
 
 class EmployeeStatus(str, Enum):
 
@@ -38,27 +41,53 @@ class EmployeeStatus(str, Enum):
     ON_LEAVE = "ON_LEAVE"
 
 
+# =========================================================
+# ADDRESS
+# =========================================================
+
 class Address(BaseModel):
 
-    street: str = Field(
-        min_length=3,
+    street: str | None = Field(
+        default=None,
         max_length=150
     )
 
-    city: str = Field(
-        min_length=2,
+    city: str | None = Field(
+        default=None,
         max_length=100
     )
 
-    state: str = Field(
-        min_length=2,
+    state: str | None = Field(
+        default=None,
         max_length=100
     )
 
-    pincode: str = Field(
+    pincode: str | None = Field(
+        default=None,
         pattern=r"^\d{6}$"
     )
 
+
+# =========================================================
+# DEPARTMENT RESPONSE
+#
+# This is used inside EmployeeResponse.
+# =========================================================
+
+class DepartmentReference(BaseModel):
+
+    id: int
+
+    name: str
+
+    description: str | None = None
+
+    is_active: bool
+
+
+# =========================================================
+# EMPLOYEE CREATE
+# =========================================================
 
 class EmployeeCreate(BaseModel):
 
@@ -69,9 +98,8 @@ class EmployeeCreate(BaseModel):
 
     email: EmailStr
 
-    department: str = Field(
-        min_length=2,
-        max_length=100
+    department_id: int = Field(
+        gt=0
     )
 
     designation: str = Field(
@@ -84,72 +112,50 @@ class EmployeeCreate(BaseModel):
         le=10_000_000
     )
 
-    status: EmployeeStatus
+    status: EmployeeStatus = EmployeeStatus.ACTIVE
 
     address: Address
 
 
-    @field_validator("name")
-    @classmethod
-    def validate_name(cls, value):
+# =========================================================
+# EMPLOYEE UPDATE
+# =========================================================
 
-        if any(char.isdigit() for char in value):
-
-            raise ValueError(
-                "Employee name cannot contain numbers"
-            )
-
-        return value.strip()
-
-
-    @model_validator(mode="after")
-    def validate_employee(self):
-
-        if (
-            self.status == EmployeeStatus.INACTIVE
-            and self.salary > 10000
-        ):
-            raise ValueError(
-                "Inactive employee cannot have salary above 10000"
-            )
-
-        return self
-
-
-# class EmployeeUpdate(EmployeeCreate):
-
-#     pass
-
-#--------------------------------
 class EmployeeUpdate(BaseModel):
 
-    name: str = Field(
+    name: str | None = Field(
+        default=None,
         min_length=3,
         max_length=100
     )
 
-    email: EmailStr
+    email: EmailStr | None = None
 
-    department: str = Field(
+    department_id: int | None = Field(
+        default=None,
+        gt=0
+    )
+
+    designation: str | None = Field(
+        default=None,
         min_length=2,
         max_length=100
     )
 
-    designation: str = Field(
-        min_length=2,
-        max_length=100
-    )
-
-    salary: float = Field(
+    salary: float | None = Field(
+        default=None,
         gt=0,
         le=10_000_000
     )
 
-    status: EmployeeStatus
+    status: EmployeeStatus | None = None
 
-    address: Address
+    address: Address | None = None
 
-#--------------------------------
+
+# =========================================================
+# EMPLOYEE RESPONSE
+# =========================================================
 
 class EmployeeResponse(BaseModel):
 
@@ -158,12 +164,225 @@ class EmployeeResponse(BaseModel):
     )
 
     id: int
+
     name: str
+
     email: EmailStr
-    department: str
+
+    department_id: int
+
+    department: DepartmentReference
+
     designation: str
+
     salary: float
+
     status: EmployeeStatus
+
     address: Address
 
+    photo_path: str | None = None
 
+    resume_path: str | None = None
+
+
+# =========================================================
+# PAGINATED EMPLOYEE RESPONSE
+# =========================================================
+
+class EmployeeListResponse(BaseModel):
+
+    items: list[EmployeeResponse]
+
+    page: int
+
+    page_size: int
+
+    total: int
+
+    total_pages: int
+
+    has_next: bool
+
+    has_previous: bool
+
+
+
+# =========================================================
+
+
+# from schemas.department_schema import DepartmentResponse # Employee Response schema with nested Department
+
+# from enum import Enum
+
+# from pydantic import (
+#     BaseModel,
+#     ConfigDict,
+#     EmailStr,
+#     Field,
+#     field_validator,
+#     model_validator
+# )
+
+
+# class EmployeeStatus(str, Enum):
+
+#     ACTIVE = "ACTIVE"
+#     INACTIVE = "INACTIVE"
+#     ON_LEAVE = "ON_LEAVE"
+
+
+# class Address(BaseModel):
+
+#     street: str = Field(
+#         min_length=3,
+#         max_length=150
+#     )
+
+#     city: str = Field(
+#         min_length=2,
+#         max_length=100
+#     )
+
+#     state: str = Field(
+#         min_length=2,
+#         max_length=100
+#     )
+
+#     pincode: str = Field(
+#         pattern=r"^\d{6}$"
+#     )
+
+
+# class EmployeeCreate(BaseModel):
+
+#     name: str = Field(
+#         min_length=3,
+#         max_length=100
+#     )
+
+#     email: EmailStr
+
+#     department: str = Field(
+#         min_length=2,
+#         max_length=100
+#     )
+
+#     designation: str = Field(
+#         min_length=2,
+#         max_length=100
+#     )
+
+#     salary: float = Field(
+#         gt=0,
+#         le=10_000_000
+#     )
+
+#     status: EmployeeStatus
+
+#     address: Address
+
+
+#     @field_validator("name")
+#     @classmethod
+#     def validate_name(cls, value):
+
+#         if any(char.isdigit() for char in value):
+
+#             raise ValueError(
+#                 "Employee name cannot contain numbers"
+#             )
+
+#         return value.strip()
+
+
+#     @model_validator(mode="after")
+#     def validate_employee(self):
+
+#         if (
+#             self.status == EmployeeStatus.INACTIVE
+#             and self.salary > 10000
+#         ):
+#             raise ValueError(
+#                 "Inactive employee cannot have salary above 10000"
+#             )
+
+#         return self
+
+
+# # class EmployeeUpdate(EmployeeCreate):
+
+# #     pass
+
+# #--------------------------------
+# class EmployeeUpdate(BaseModel):
+
+#     name: str = Field(
+#         min_length=3,
+#         max_length=100
+#     )
+
+#     email: EmailStr
+
+#     department: str = Field(
+#         min_length=2,
+#         max_length=100
+#     )
+
+#     designation: str = Field(
+#         min_length=2,
+#         max_length=100
+#     )
+
+#     salary: float = Field(
+#         gt=0,
+#         le=10_000_000
+#     )
+
+#     status: EmployeeStatus
+
+#     address: Address
+
+# #--------------------------------
+
+# # class EmployeeResponse(BaseModel):
+
+# #     model_config = ConfigDict(
+# #         from_attributes=True
+# #     )
+
+# #     id: int
+# #     name: str
+# #     email: EmailStr
+# #     department: str
+# #     designation: str
+# #     salary: float
+# #     status: EmployeeStatus
+# #     address: Address
+
+# # ---------------------------
+
+# ### Relationship in the schema (The relationship is now visible:)
+
+# class EmployeeResponse(BaseModel):
+
+#     model_config = ConfigDict(
+#         from_attributes=True
+#     )
+
+#     id: int
+#     name: str
+#     email: EmailStr
+#     department_id: int
+#     department: DepartmentResponse # Nested Pydantic model
+#     designation: str
+#     salary: float
+#     status: EmployeeStatus
+#     address: Address
+
+#     # ---------------------------------
+
+# ### NOTE: Instead of 1 or 2 in the deaprtment number, We can return the department information as a nested object.
+#         ### his is a nested Pydantic model.
+
+# ### Change the code in Get_Employee_By_Department

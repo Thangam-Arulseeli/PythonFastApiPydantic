@@ -13,7 +13,8 @@ from fastapi import (
 from schemas.employee_schema import (
     EmployeeCreate,
     EmployeeUpdate,
-    EmployeeResponse
+    EmployeeResponse,
+    EmployeeListResponse
 )
 
 from services.employee_service import (
@@ -23,6 +24,14 @@ from services.employee_service import (
     update_existing_employee,
     delete_existing_employee
 )
+
+
+from fastapi import APIRouter, File, UploadFile
+
+from services.employee_service import (
+    upload_employee_files
+)
+
 #  -----------------------------------------
 
 router = APIRouter(
@@ -37,26 +46,61 @@ router = APIRouter(
 )
 # -----------------------------------------
 
-#### GET ALL — Query parameter
-
+@router.get(
+    "/",
+    response_model=EmployeeListResponse
+)
 async def get_all(
-    department: str | None = Query(
-        default=None
+
+    page: int = Query(
+        default=1,
+        ge=1,
+        description="Page number"
+    ),
+
+    page_size: int = Query(
+        default=3,
+        ge=1,
+        le=3,
+        description="Number of employees per page"
+    ),
+
+    department_id: int | None = Query(
+        default=None,
+        gt=0,
+        description="Filter employees by department ID"
     )
 ):
 
-    employees = await get_employees()
+    return await get_employees(
 
-    if department:
+        page=page,
 
-        employees = [
-            employee
-            for employee in employees
-            if employee.department.lower()
-            == department.lower()
-        ]
+        page_size=page_size,
 
-    return employees
+        department_id=department_id
+    )
+
+
+# =========================================================
+# GET EMPLOYEE BY ID
+# =========================================================
+
+@router.get(
+    "/{employee_id}",
+    response_model=EmployeeResponse
+)
+async def get_one(
+
+    employee_id: int = Path(
+        ...,
+        gt=0
+    )
+):
+
+    return await get_employee(
+        employee_id
+    )
 '''
 Now:
     GET /api/employees/
@@ -233,6 +277,39 @@ async def delete(
     )
 
 # -------------------------------------------------
+
+
+##### File Handling — Upload Employee Files (Photo and Resume)
+
+@router.post("/{employee_id}/files")
+async def upload_employee_files_endpoint(
+    employee_id: int,
+
+    photo: UploadFile | None = File(
+        default=None
+    ),
+
+    resume: UploadFile | None = File(
+        default=None
+    )
+):
+
+    return await upload_employee_files(
+
+        employee_id=employee_id,
+
+        photo=photo,
+
+        resume=resume
+    )
+
+
+
+##### =====================================
+
+
+
+
 
 ###### Complete Router
 
